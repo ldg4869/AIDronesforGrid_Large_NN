@@ -1,15 +1,22 @@
 # AIDronesforGrid_Large_NN
-Creating a Large Neural Network to train an AI for image classification of power line components. 
- =========================
-# 0) Colab Setup (Installs) (for tuning: adding albumentation pip and install commands)
-# =========================
-!pip -q install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
-!pip -q install scikit-learn pandas
-!pip -q install albumentations==1.4.3 opencv-python-headless
 
-# =========================
+Creating a Large Neural Network to train an AI for image classification of power line components. 
+
+
+
+# 0) Colab Setup (Installs):
+ (for tuning: adding albumentation pip and install commands)
+```
+!pip -q install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+
+!pip -q install scikit-learn pandas
+
+!pip -q install albumentations==1.4.3 opencv-python-headless
+```
+
+
 # 1) Mount Drive & Unzip
-# =========================
+```
 from google.colab import drive
 drive.mount('/content/drive')
 
@@ -22,16 +29,19 @@ from albumentations.pytorch import ToTensorV2
 # ---- UPDATE THIS if your zip is in a different Drive folder ----
 ZIP_PATH = "/content/drive/MyDrive/unsupervised_anomaly_detection.zip"
 
-# Unzip into /content/ (so we'll get /content/glass-insulator/test/good and .../missingcap)
+# Unzip into /content/ (so we'll get /content/glass-insulator/test/good and .../missingcap) 
+
 if not Path(ZIP_PATH).exists():
     raise FileNotFoundError(f"Could not find: {ZIP_PATH}. Move the zip to that path or update ZIP_PATH.")
 
 print("Unzipping dataset (first time only)...")
 !unzip -q -o "/content/drive/MyDrive/unsupervised_anomaly_detection.zip" -d /content/
+```
 
-# =========================
+
 # 2) Imports & Config
-# =========================
+
+```
 import os, math, time, random
 from pathlib import Path
 from collections import Counter
@@ -51,28 +61,29 @@ from sklearn.metrics import classification_report, confusion_matrix
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Device:", device)
 
-# ---- Your dataset root: contains 'good' and 'missingcap' subfolders ----
-IMAGEFOLDER_ROOT = "/content/glass-insulator/test"  # <- This matches your Windows paths once unzipped
+# Your dataset root: contains 'good' and 'missingcap' subfolders
+
+IMAGEFOLDER_ROOT = "/content/glass-insulator/test"  // <- This matches your //Windows paths once unzipped
 
 # Training configuration
-# MODEL_NAME = "resnet18"     # "resnet18", "resnet50", or "efficientnet_v2_s"
-# FREEZE_BACKBONE = False     # True = feature extraction; False = full fine-tune
-# IMG_SIZE = 224
-# BATCH_SIZE = 32
-# LR = 3e-4
-# EPOCHS = 10
-# VAL_SPLIT = 0.2
-# RANDOM_SEED = 42
-# USE_MIXED_PRECISION = True
+ MODEL_NAME = "resnet18"     # "resnet18", "resnet50", or "efficientnet_v2_s"
+ FREEZE_BACKBONE = False     # True = feature extraction; False = full fine-tune
+ IMG_SIZE = 224
+ BATCH_SIZE = 32
+ LR = 3e-4
+ EPOCHS = 10
+ VAL_SPLIT = 0.2
+ RANDOM_SEED = 42
+ USE_MIXED_PRECISION = True
 
 SAVE_DIR = Path("/content/nn_runs")
 SAVE_DIR.mkdir(parents=True, exist_ok=True)
 BEST_CKPT = SAVE_DIR / "best_model.pt"
+```
 
-# =========================
 # For tuning: Adding dictionary below to house all hyperparameters
-# =========================
 
+```
 HP = dict(
     MODEL_NAME="resnet18",
     FREEZE_BACKBONE=False,
@@ -96,39 +107,41 @@ HP = dict(
     )
 # Define RANDOM_SEED before set_seed is called
 RANDOM_SEED = HP["RANDOM_SEED"]
+```
 
-# =========================
 # 3) Reproducibility
-# =========================
+
+```
 def set_seed(seed=RANDOM_SEED):
     random.seed(seed); np.random.seed(seed); torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed); torch.backends.cudnn.deterministic = True
 set_seed()
+```
 
-# =========================
+
 # 4) Transforms
-# =========================
-# def get_transforms(img_size):
-#     train_tf = transforms.Compose([
-#         transforms.Resize((img_size, img_size)),
-#         transforms.RandomHorizontalFlip(),
-#         transforms.RandomResizedCrop(img_size, scale=(0.8, 1.0)),
-#         transforms.ToTensor(),
-#         transforms.Normalize(mean=[0.485,0.456,0.406], std=[0.229,0.224,0.225]),
-#     ])
-#     val_tf = transforms.Compose([
-#         transforms.Resize((img_size, img_size)),
-#         transforms.CenterCrop(img_size),
-#         transforms.ToTensor(),
-#         transforms.Normalize(mean=[0.485,0.456,0.406], std=[0.229,0.224,0.225]),
-#     ])
-#     return train_tf, val_tf
 
-# =========================
+``` def get_transforms(img_size):
+     train_tf = transforms.Compose([
+         transforms.Resize((img_size, img_size)),
+         transforms.RandomHorizontalFlip(),
+         transforms.RandomResizedCrop(img_size, scale=(0.8, 1.0)),
+         transforms.ToTensor(),
+         transforms.Normalize(mean=[0.485,0.456,0.406], std=[0.229,0.224,0.225]),
+     ])
+     val_tf = transforms.Compose([
+         transforms.Resize((img_size, img_size)),
+         transforms.CenterCrop(img_size),
+         transforms.ToTensor(),
+         transforms.Normalize(mean=[0.485,0.456,0.406], std=[0.229,0.224,0.225]),
+     ])
+     return train_tf, val_tf
+```
+
 # HP4) Transforms
-# =========================
 
-def get_transforms_albu(img_size: int, aug_strength: float):
+
+```def get_transforms_albu(img_size: int, aug_strength: float):
     """
     Albumentations transforms.
     - Returns callables that accept a PIL.Image and return a CHW torch.Tensor (float, normalized).
@@ -179,10 +192,10 @@ def get_transforms_albu(img_size: int, aug_strength: float):
         transforms.Normalize(mean=[0.485,0.456,0.406], std=[0.229,0.224,0.225]),
     ])
     return train_tf, val_tf
+```
 
-# =========================
 # 5) Data Preparation (tuning denoted)
-# =========================
+```
 def prepare_dataloaders_imagefolder(root, val_split=0.2):
     if not Path(root).exists():
         raise FileNotFoundError(f"Expected dataset root at {root} with class subfolders.")
@@ -258,10 +271,11 @@ def prepare_dataloaders_imagefolder(root, val_split=0.2):
 
 
 train_loader, val_loader, classes, class_to_idx, train_counts = prepare_dataloaders_imagefolder(IMAGEFOLDER_ROOT, HP["VAL_SPLIT"]) # Use HP["VAL_SPLIT"]
+```
 
-# =========================
+
 # 6) Model Factory
-# =========================
+```
 def build_model(num_classes):
     if HP["MODEL_NAME"] == "resnet18": # Use HP["MODEL_NAME"]
         model = models.resnet18(weights=models.ResNet18_Weights.DEFAULT)
@@ -285,25 +299,30 @@ def build_model(num_classes):
     return model
 
 model = build_model(num_classes=len(classes)).to(device)
+```
 
-# =========================
+
 # 7) Loss (with class weighting)
-# =========================
-# total = sum(train_counts.values())
-# weights = [total / train_counts.get(i, 1) for i in range(len(classes))]
-# class_weight = torch.tensor(weights, dtype=torch.float32, device=device)
-# criterion = nn.CrossEntropyLoss(weight=class_weight)
+```
 
-# optimizer = torch.optim.AdamW(filter(lambda p: p.requires_grad, model.parameters()), lr=LR)
-# scaler = torch.cuda.amp.GradScaler(enabled=(USE_MIXED_PRECISION and device.type == "cuda"))
+total = sum(train_counts.values())
+weights = [total / train_counts.get(i, 1) for i in range(len(classes))]
+class_weight = torch.tensor(weights, dtype=torch.float32, device=device)
+criterion = nn.CrossEntropyLoss(weight=class_weight)
 
-# =========================
+optimizer = torch.optim.AdamW(filter(lambda p: p.requires_grad, model.parameters()), lr=LR)
+scaler = torch.cuda.amp.GradScaler(enabled=(USE_MIXED_PRECISION and device.type == "cuda"))
+```
+
+
 # HP7) Loss (for tuning)
-# =========================
 
-# for tuning: replacing the following line ==========
-# criterion = nn.CrossEntropyLoss()
-# ==================
+
+ for tuning: replacing the following line   
+ ```criterion = nn.CrossEntropyLoss()  ```
+ 
+&nbsp;  
+``` 
 criterion = nn.CrossEntropyLoss(label_smoothing=HP["LABEL_SMOOTH"]) # Use HP["LABEL_SMOOTH"]
 optimizer = torch.optim.AdamW(
     filter(lambda p: p.requires_grad, model.parameters()),
@@ -340,13 +359,15 @@ elif HP["SCHEDULER"].lower() == "onecycle":
 
 else:
     scheduler = None
+```
 
-# =========================
+
 # 8) Train / Eval Loops (tuning line-by-line)
-# =========================
+ for tuning: adding the following block of code before next comment
 
-# for tuning: adding the following block of code before next comment
+&nbsp; 
 
+```
 def mixup_data(x, y, alpha: float):
     """Returns mixed inputs, paired targets, and lambda."""
     if alpha <= 0.0:
@@ -360,8 +381,11 @@ def mixup_data(x, y, alpha: float):
 def mixup_criterion(criterion, pred, targets, lam: float):
     y_a, y_b = targets
     return lam * criterion(pred, y_a) + (1.0 - lam) * criterion(pred, y_b)
+```
 
-# for tuning: replacing train_one_epoch with version that will use MixUp"
+ for tuning: replacing train_one_epoch with version that will use MixUp"
+
+```
 def train_one_epoch(
     model,
     loader,
@@ -429,10 +453,11 @@ def eval_one_epoch(model, loader, criterion):
         ys.append(y.cpu().numpy()); preds.append(pred.cpu().numpy())
     ys = np.concatenate(ys); preds = np.concatenate(preds)
     return run_loss/total, correct/total, ys, preds
+```
 
-# =========================
+
 # 9) Run Training with Early Stop
-# =========================
+```
 best_val_acc = 0.0
 patience, bad_epochs = 3, 0
 
@@ -466,18 +491,22 @@ for epoch in range(1, HP["EPOCHS"] + 1): # Use HP["EPOCHS"]
 
 print(f"\nBest validation accuracy: {best_val_acc:.3f}")
 print(f"Saved checkpoint: {BEST_CKPT}")
+```
 
-# =========================
+
 # 10) Final Validation Report
-# =========================
+
+```
 print("\nClassification report on validation set:")
 print(classification_report(y_true, y_pred, target_names=classes, digits=4))
 print("Confusion matrix:")
 print(confusion_matrix(y_true, y_pred))
+```
 
-# =========================
+
 # 11) Minimal Inference Helper
-# =========================
+
+```
 @torch.no_grad()
 def predict_image(path):
     model.eval()
@@ -497,3 +526,4 @@ def predict_image(path):
 
 # Example usage after training (update path to a real image):
 # print(predict_image("/content/glass-insulator/test/good/your_image.jpg"))
+```
