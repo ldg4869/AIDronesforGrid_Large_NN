@@ -3,33 +3,44 @@
 # 2) Imports & Config
 # =========================
 
-import albumentations as A
-from albumentations.pytorch import ToTensorV2
+import albumentations as A #albumentations is an image augmentation library for AI intented to create more training data from existing stuff  (COMPUTER VISION)
+from albumentations.pytorch import ToTensorV2  #pytorch: open sorce deep learning framework from Meta AI, min research says Pytorch and TensorFlow enable math req for NN
+#ToTensor coverts img to  Tensor (math friendly giga array) 
 
-import os, math, time, random
-from pathlib import Path
-from collections import Counter
 
-import numpy as np
-import pandas as pd
+import os, math, time, random  # os and file sys manip, more math functs, time measurement, enables pseudorandomness 
+from pathlib import Path # enables Path objects so we can pass paths to functions to locate files 
+from collections import Counter #allows counting how often an item appears in a collection  (counting instances of found things)
 
-import torch
-from torch import nn
-from torch.utils.data import Dataset, DataLoader, WeightedRandomSampler
-from torchvision import transforms, datasets, models
-from PIL import Image
+import numpy as np  #Numbers Python (more math ops arrays etc.)
+import pandas as pd #Better and more table based manipulation, ?any type of data? not just number procsessing
 
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import classification_report, confusion_matrix, f1_score
+import torch  #Provides tensors, more math ops, automatic differentiation, hardware acceleration suport
+from torch import nn # Neural Network building blocks (activation and loss functions, layers etc.)
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print("Device:", device)
+from torch.utils.data import Dataset, DataLoader, WeightedRandomSampler 
+# dataset: Defines individual sample fetching and label retrevial
+# dataloader: groups samples and alows manipulating their order within the group
+# WeightedRandomSampler: Allows sampling based on assigned weights
+
+from torchvision import transforms, datasets, models #PyTorch Expansion designed for Computer Vision
+# Transforms: resizes images, tensor conversion, pixel value normalization, and other transformation
+# Datasets: Classes for loading datasets from common and popluar formats ( can load from file path)
+# models: Provides implemetations of som models
+from PIL import Image #Python Imaging Library allows opening immages and retrieving dimensions and color mode (RGB, L, RGBA) 
+
+
+from sklearn.model_selection import train_test_split #allows splitting dataset into sub sets
+from sklearn.metrics import classification_report, confusion_matrix, f1_score #importing different params to grade the model
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu") #Checks if a NVIDIA GPU is avail ?   (cuda appears to be NVIDIA API for thier stuff)
+print("Device:", device) # return what device is beign used to procsess cuda or cpu
 
 # ---- Your dataset roots: contain 14 class subfolders each ----
-TRAIN_ROOT = r"C:\Users\wyatt\OneDrive\Documents\Senior Design\SD Dataset\train"  # Updated path
-VAL_ROOT = r"C:\Users\wyatt\OneDrive\Documents\Senior Design\SD Dataset\val"    # Updated path
+TRAIN_ROOT = r"C:\Users\wyatt\OneDrive\Documents\Senior Design\SD Dataset\train"  # Insert path to training data
+VAL_ROOT = r"C:\Users\wyatt\OneDrive\Documents\Senior Design\SD Dataset\val"    # Insert path to data values ???
 
-SAVE_DIR = Path(r"C:\Users\wyatt\OneDrive\Documents\Senior Design\SD Dataset")
+SAVE_DIR = Path(r"C:\Users\wyatt\OneDrive\Documents\Senior Design\SD Dataset") #Insert path where modified data should be saved? ?? 
 SAVE_DIR.mkdir(parents=True, exist_ok=True)
 BEST_CKPT = SAVE_DIR / "best_model.pt"
 
@@ -37,7 +48,7 @@ BEST_CKPT = SAVE_DIR / "best_model.pt"
 # For tuning: Adding dictionary below to house all hyperparameters
 # =========================
 
-HP = dict(
+HP = dict( #dict indicates dictionary but this dosen't follow typical dictionary syntax, appears to be only keys  [end dean review 10-1-26]
     MODEL_NAME="resnet18",
     FREEZE_BACKBONE=False,
     IMG_SIZE=224,
